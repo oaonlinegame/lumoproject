@@ -1,0 +1,61 @@
+version: '3.8'
+
+networks:
+  lumo_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+
+services:
+  lumo_php:
+    build:
+      context: ./docker/php
+    container_name: lumo_php_new
+    volumes:
+      - ./www:/var/www/html
+    networks:
+      - lumo_network
+
+  lumo_nginx:
+    image: nginx:latest
+    container_name: lumo_nginx_new
+    volumes:
+      - ./www:/var/www/html
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "8084:80"
+    depends_on:
+      - lumo_php
+    networks:
+      - lumo_network
+
+  lumo_mariadb:
+    image: mariadb:latest
+    container_name: lumo_mariadb_new
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel_user
+      MYSQL_PASSWORD: laravel_password
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - lumo_network
+
+  lumo_phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: lumo_phpmyadmin_new
+    environment:
+      PMA_HOST: lumo_mariadb
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8085:80"
+    depends_on:
+      - lumo_mariadb
+    networks:
+      - lumo_network
+
+volumes:
+  db_data:
